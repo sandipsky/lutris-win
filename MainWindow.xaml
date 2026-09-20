@@ -1,0 +1,532 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Window
+    x:Class="Lutris.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Lutris"
+    xmlns:models="using:Lutris.Models"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    Title="Lutris">
+
+    <Window.SystemBackdrop>
+        <MicaBackdrop Kind="Base" />
+    </Window.SystemBackdrop>
+
+    <Grid x:Name="Root" RowDefinitions="48,Auto,Auto,*" KeyboardAcceleratorPlacementMode="Hidden">
+        <Grid.Resources>
+            <UniformGridLayout
+                x:Key="GridLayout"
+                MinItemWidth="164"
+                MinItemHeight="272"
+                MinRowSpacing="16"
+                MinColumnSpacing="16"
+                ItemsStretch="Uniform" />
+            <StackLayout x:Key="ListLayout" Spacing="8" />
+
+            <!-- Portrait card for the grid view -->
+            <DataTemplate x:Key="GameCardTemplate" x:DataType="models:GameItem">
+                <ItemContainer CornerRadius="8" Tag="{x:Bind}" DoubleTapped="GameItem_DoubleTapped">
+                    <Grid RowDefinitions="*,Auto">
+                        <Grid.ContextFlyout>
+                            <MenuFlyout>
+                                <MenuFlyoutItem Text="Play" Tag="{x:Bind}" Click="PlayMenu_Click">
+                                    <MenuFlyoutItem.Icon>
+                                        <FontIcon Glyph="&#xE768;" />
+                                    </MenuFlyoutItem.Icon>
+                                </MenuFlyoutItem>
+                                <MenuFlyoutItem Text="Edit" Tag="{x:Bind}" Click="EditMenu_Click">
+                                    <MenuFlyoutItem.Icon>
+                                        <FontIcon Glyph="&#xE70F;" />
+                                    </MenuFlyoutItem.Icon>
+                                </MenuFlyoutItem>
+                                <MenuFlyoutItem Text="Show in folder" Tag="{x:Bind}" Click="RevealMenu_Click">
+                                    <MenuFlyoutItem.Icon>
+                                        <FontIcon Glyph="&#xE838;" />
+                                    </MenuFlyoutItem.Icon>
+                                </MenuFlyoutItem>
+                                <MenuFlyoutSeparator />
+                                <MenuFlyoutItem Text="Remove from library" Tag="{x:Bind}" Click="RemoveMenu_Click">
+                                    <MenuFlyoutItem.Icon>
+                                        <FontIcon Glyph="&#xE74D;" />
+                                    </MenuFlyoutItem.Icon>
+                                </MenuFlyoutItem>
+                            </MenuFlyout>
+                        </Grid.ContextFlyout>
+
+                        <Grid Grid.Row="0" CornerRadius="8">
+                            <Border Background="{ThemeResource CoverPlaceholderBrush}" CornerRadius="8">
+                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="8">
+                                    <FontIcon Glyph="&#xE7FC;" FontSize="32" Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+                                    <TextBlock Text="No cover" Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorTertiaryBrush}" HorizontalAlignment="Center" />
+                                </StackPanel>
+                            </Border>
+                            <Rectangle RadiusX="8" RadiusY="8" Visibility="{x:Bind HasPortrait, Mode=OneWay}">
+                                <Rectangle.Fill>
+                                    <ImageBrush ImageSource="{x:Bind PortraitThumb, Mode=OneWay}" Stretch="UniformToFill" />
+                                </Rectangle.Fill>
+                            </Rectangle>
+                            <Border
+                                Visibility="{x:Bind IsRunning, Mode=OneWay}"
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Top"
+                                Margin="8"
+                                Padding="8,2"
+                                CornerRadius="10"
+                                Background="{ThemeResource AccentFillColorDefaultBrush}">
+                                <TextBlock Text="Running" Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}" />
+                            </Border>
+                        </Grid>
+
+                        <StackPanel Grid.Row="1" Padding="6,8,6,6" Spacing="2">
+                            <TextBlock
+                                Text="{x:Bind Title, Mode=OneWay}"
+                                Style="{StaticResource BodyStrongTextBlockStyle}"
+                                TextTrimming="CharacterEllipsis"
+                                TextWrapping="NoWrap"
+                                ToolTipService.ToolTip="{x:Bind Title, Mode=OneWay}" />
+                            <TextBlock
+                                Text="{x:Bind YearText, Mode=OneWay}"
+                                Style="{StaticResource CaptionTextBlockStyle}"
+                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                Visibility="{x:Bind HasYear, Mode=OneWay}" />
+                        </StackPanel>
+                    </Grid>
+                </ItemContainer>
+            </DataTemplate>
+
+            <!-- Landscape row for the list view -->
+            <DataTemplate x:Key="GameRowTemplate" x:DataType="models:GameItem">
+                <ItemContainer CornerRadius="8" Tag="{x:Bind}" DoubleTapped="GameItem_DoubleTapped">
+                    <Grid
+                        ColumnDefinitions="Auto,*,Auto"
+                        ColumnSpacing="16"
+                        Padding="8"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                        BorderThickness="1"
+                        CornerRadius="8">
+                        <Grid.ContextFlyout>
+                            <MenuFlyout>
+                                <MenuFlyoutItem Text="Play" Tag="{x:Bind}" Click="PlayMenu_Click">
+                                    <MenuFlyoutItem.Icon>
+                                        <FontIcon Glyph="&#xE768;" />
+                                    </MenuFlyoutItem.Icon>
+                                </MenuFlyoutItem>
+                                <MenuFlyoutItem Text="Edit" Tag="{x:Bind}" Click="EditMenu_Click">
+                                    <MenuFlyoutItem.Icon>
+                                        <FontIcon Glyph="&#xE70F;" />
+                                    </MenuFlyoutItem.Icon>
+                                </MenuFlyoutItem>
+                                <MenuFlyoutItem Text="Show in folder" Tag="{x:Bind}" Click="RevealMenu_Click">
+                                    <MenuFlyoutItem.Icon>
+                                        <FontIcon Glyph="&#xE838;" />
+                                    </MenuFlyoutItem.Icon>
+                                </MenuFlyoutItem>
+                                <MenuFlyoutSeparator />
+                                <MenuFlyoutItem Text="Remove from library" Tag="{x:Bind}" Click="RemoveMenu_Click">
+                                    <MenuFlyoutItem.Icon>
+                                        <FontIcon Glyph="&#xE74D;" />
+                                    </MenuFlyoutItem.Icon>
+                                </MenuFlyoutItem>
+                            </MenuFlyout>
+                        </Grid.ContextFlyout>
+
+                        <Grid Width="144" Height="81" CornerRadius="6">
+                            <Border Background="{ThemeResource CoverPlaceholderBrush}" CornerRadius="6">
+                                <FontIcon Glyph="&#xE7FC;" FontSize="20" Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+                            </Border>
+                            <Rectangle RadiusX="6" RadiusY="6" Visibility="{x:Bind HasRowThumb, Mode=OneWay}">
+                                <Rectangle.Fill>
+                                    <ImageBrush ImageSource="{x:Bind RowThumb, Mode=OneWay}" Stretch="UniformToFill" />
+                                </Rectangle.Fill>
+                            </Rectangle>
+                        </Grid>
+
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                            <TextBlock Text="{x:Bind Title, Mode=OneWay}" Style="{StaticResource BodyStrongTextBlockStyle}" TextTrimming="CharacterEllipsis" />
+                            <TextBlock Text="{x:Bind SubtitleText, Mode=OneWay}" Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <TextBlock Text="{x:Bind ExePath, Mode=OneWay}" Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorTertiaryBrush}" TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="16" VerticalAlignment="Center" Margin="0,0,4,0">
+                            <TextBlock Text="{x:Bind PlayTimeText, Mode=OneWay}" Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" />
+                            <Button Tag="{x:Bind}" Click="PlayButton_Click" IsEnabled="{x:Bind local:MainWindow.Not(IsRunning), Mode=OneWay}">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <FontIcon Glyph="&#xE768;" FontSize="12" />
+                                    <TextBlock Text="{x:Bind local:MainWindow.PlayLabel(IsRunning), Mode=OneWay}" />
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                    </Grid>
+                </ItemContainer>
+            </DataTemplate>
+        </Grid.Resources>
+
+        <Grid.KeyboardAccelerators>
+            <KeyboardAccelerator Key="N" Modifiers="Control" Invoked="AddAccelerator_Invoked" />
+            <KeyboardAccelerator Key="F" Modifiers="Control" Invoked="SearchAccelerator_Invoked" />
+            <KeyboardAccelerator Key="F5" Invoked="RefreshAccelerator_Invoked" />
+        </Grid.KeyboardAccelerators>
+
+        <!-- Title bar: app identity on the left, search in the middle, caption buttons on the right -->
+        <Grid x:Name="AppTitleBar" Grid.Row="0" Height="48">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition x:Name="LeftPaddingColumn" Width="0" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition x:Name="RightPaddingColumn" Width="0" />
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center" Margin="16,0,0,0">
+                <Image Source="ms-appx:///Assets/AppIcon.png" Width="16" Height="16" />
+                <TextBlock Text="Lutris" Style="{StaticResource CaptionTextBlockStyle}" VerticalAlignment="Center" />
+            </StackPanel>
+
+            <AutoSuggestBox
+                x:Name="SearchBox"
+                Grid.Column="3"
+                Width="380"
+                VerticalAlignment="Center"
+                PlaceholderText="Search your library"
+                QueryIcon="Find"
+                TextChanged="SearchBox_TextChanged"
+                QuerySubmitted="SearchBox_QuerySubmitted" />
+        </Grid>
+
+        <!-- Toolbar -->
+        <Grid Grid.Row="1" Margin="24,4,24,12" ColumnDefinitions="*,Auto">
+            <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                <TextBlock Text="Library" Style="{StaticResource TitleTextBlockStyle}" />
+                <TextBlock
+                    Text="{x:Bind ViewModel.CountText, Mode=OneWay}"
+                    Style="{StaticResource BodyTextBlockStyle}"
+                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                    VerticalAlignment="Bottom"
+                    Margin="0,0,0,6" />
+            </StackPanel>
+
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                <DropDownButton ToolTipService.ToolTip="Sort">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <FontIcon Glyph="&#xE8CB;" FontSize="14" />
+                        <TextBlock Text="{x:Bind ViewModel.SortLabel, Mode=OneWay}" />
+                    </StackPanel>
+                    <DropDownButton.Flyout>
+                        <MenuFlyout Placement="BottomEdgeAlignedRight">
+                            <RadioMenuFlyoutItem Text="Title" GroupName="Sort" IsChecked="True" Tag="Title" Click="SortItem_Click" />
+                            <RadioMenuFlyoutItem Text="Recently played" GroupName="Sort" Tag="RecentlyPlayed" Click="SortItem_Click" />
+                            <RadioMenuFlyoutItem Text="Most played" GroupName="Sort" Tag="MostPlayed" Click="SortItem_Click" />
+                            <RadioMenuFlyoutItem Text="Recently added" GroupName="Sort" Tag="RecentlyAdded" Click="SortItem_Click" />
+                        </MenuFlyout>
+                    </DropDownButton.Flyout>
+                </DropDownButton>
+
+                <Border
+                    BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    CornerRadius="{ThemeResource ControlCornerRadius}"
+                    Background="{ThemeResource ControlFillColorDefaultBrush}">
+                    <StackPanel Orientation="Horizontal">
+                        <ToggleButton
+                            x:Name="GridViewToggle"
+                            IsChecked="True"
+                            Click="GridViewToggle_Click"
+                            Width="40"
+                            Height="32"
+                            Padding="0"
+                            BorderThickness="0"
+                            Background="Transparent"
+                            CornerRadius="4,0,0,4"
+                            ToolTipService.ToolTip="Grid view">
+                            <FontIcon Glyph="&#xF0E2;" FontSize="14" />
+                        </ToggleButton>
+                        <ToggleButton
+                            x:Name="ListViewToggle"
+                            Click="ListViewToggle_Click"
+                            Width="40"
+                            Height="32"
+                            Padding="0"
+                            BorderThickness="0"
+                            Background="Transparent"
+                            CornerRadius="0,4,4,0"
+                            ToolTipService.ToolTip="List view">
+                            <FontIcon Glyph="&#xEA37;" FontSize="14" />
+                        </ToggleButton>
+                    </StackPanel>
+                </Border>
+
+                <Button Style="{StaticResource AccentButtonStyle}" Click="AddGame_Click">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <FontIcon Glyph="&#xE710;" FontSize="14" />
+                        <TextBlock Text="Add game" />
+                    </StackPanel>
+                </Button>
+
+                <Button Width="40" Height="32" Padding="0" ToolTipService.ToolTip="More options">
+                    <FontIcon Glyph="&#xE712;" FontSize="16" />
+                    <Button.Flyout>
+                        <MenuFlyout Placement="BottomEdgeAlignedRight">
+                            <MenuFlyoutItem Text="Import library…" Click="Import_Click">
+                                <MenuFlyoutItem.Icon>
+                                    <FontIcon Glyph="&#xE8B5;" />
+                                </MenuFlyoutItem.Icon>
+                            </MenuFlyoutItem>
+                            <MenuFlyoutItem Text="Export library…" Click="Export_Click">
+                                <MenuFlyoutItem.Icon>
+                                    <FontIcon Glyph="&#xEDE1;" />
+                                </MenuFlyoutItem.Icon>
+                            </MenuFlyoutItem>
+                            <MenuFlyoutSeparator />
+                            <MenuFlyoutItem x:Name="ImportElectronItem" Text="Import from the previous Lutris app…" Click="ImportElectron_Click" Visibility="Collapsed">
+                                <MenuFlyoutItem.Icon>
+                                    <FontIcon Glyph="&#xE896;" />
+                                </MenuFlyoutItem.Icon>
+                            </MenuFlyoutItem>
+                            <MenuFlyoutItem Text="Open data folder" Click="OpenDataFolder_Click">
+                                <MenuFlyoutItem.Icon>
+                                    <FontIcon Glyph="&#xE8B7;" />
+                                </MenuFlyoutItem.Icon>
+                            </MenuFlyoutItem>
+                        </MenuFlyout>
+                    </Button.Flyout>
+                </Button>
+            </StackPanel>
+        </Grid>
+
+        <!-- One-time offer to bring over the Electron app's library -->
+        <InfoBar
+            x:Name="MigrationBar"
+            Grid.Row="2"
+            Margin="24,0,24,12"
+            IsOpen="False"
+            Severity="Informational"
+            Title="Library found"
+            Message="A library from the earlier Lutris desktop app is on this PC. Import it to bring over your games, banners and play time.">
+            <InfoBar.ActionButton>
+                <Button Content="Import library" Click="ImportElectron_Click" />
+            </InfoBar.ActionButton>
+        </InfoBar>
+
+        <!-- Content layer -->
+        <Border
+            Grid.Row="3"
+            Background="{ThemeResource LayerFillColorDefaultBrush}"
+            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+            BorderThickness="1,1,1,0"
+            CornerRadius="8,8,0,0">
+            <SplitView
+                x:Name="DetailsSplitView"
+                PanePlacement="Right"
+                DisplayMode="Inline"
+                OpenPaneLength="400"
+                IsPaneOpen="False"
+                PaneBackground="{ThemeResource LayerFillColorAltBrush}"
+                PaneClosed="DetailsSplitView_PaneClosed"
+                CornerRadius="8,8,0,0">
+
+                <SplitView.Pane>
+                    <Grid BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1,0,0,0">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <StackPanel>
+                                <!-- Hero banner with the title laid over a dark scrim -->
+                                <Grid Height="225">
+                                    <Border Background="{StaticResource HeroPlaceholderBrush}" />
+                                    <FontIcon
+                                        Glyph="&#xE7FC;"
+                                        FontSize="48"
+                                        Foreground="#40FFFFFF"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        Visibility="{x:Bind local:MainWindow.VisibleIfNot(ViewModel.SelectedItem.HasHero), Mode=OneWay}" />
+                                    <Image Source="{x:Bind ViewModel.SelectedItem.HeroImage, Mode=OneWay}" Stretch="UniformToFill" />
+                                    <Rectangle VerticalAlignment="Bottom" Height="150">
+                                        <Rectangle.Fill>
+                                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                <GradientStop Color="#00000000" Offset="0" />
+                                                <GradientStop Color="#CC000000" Offset="1" />
+                                            </LinearGradientBrush>
+                                        </Rectangle.Fill>
+                                    </Rectangle>
+                                    <StackPanel VerticalAlignment="Bottom" Padding="20,0,20,14" Spacing="2">
+                                        <TextBlock
+                                            Text="{x:Bind ViewModel.SelectedItem.Title, Mode=OneWay}"
+                                            Style="{StaticResource SubtitleTextBlockStyle}"
+                                            Foreground="White"
+                                            TextWrapping="Wrap"
+                                            MaxLines="2"
+                                            TextTrimming="CharacterEllipsis" />
+                                        <TextBlock
+                                            Text="{x:Bind ViewModel.SelectedItem.YearText, Mode=OneWay}"
+                                            Style="{StaticResource CaptionTextBlockStyle}"
+                                            Foreground="#CCFFFFFF"
+                                            Visibility="{x:Bind ViewModel.SelectedItem.HasYear, Mode=OneWay}" />
+                                    </StackPanel>
+                                    <Button
+                                        Click="CloseDetails_Click"
+                                        HorizontalAlignment="Right"
+                                        VerticalAlignment="Top"
+                                        Margin="12"
+                                        Width="32"
+                                        Height="32"
+                                        Padding="0"
+                                        CornerRadius="16"
+                                        Background="#66000000"
+                                        BorderThickness="0"
+                                        Foreground="White"
+                                        ToolTipService.ToolTip="Close">
+                                        <FontIcon Glyph="&#xE711;" FontSize="12" />
+                                    </Button>
+                                </Grid>
+
+                                <StackPanel Padding="20,16,20,20" Spacing="12">
+                                    <Button
+                                        Style="{StaticResource AccentButtonStyle}"
+                                        HorizontalAlignment="Stretch"
+                                        Height="40"
+                                        Click="PlaySelected_Click"
+                                        IsEnabled="{x:Bind local:MainWindow.Not(ViewModel.SelectedItem.IsRunning), Mode=OneWay}">
+                                        <StackPanel Orientation="Horizontal" Spacing="10">
+                                            <FontIcon Glyph="&#xE768;" FontSize="14" />
+                                            <TextBlock Text="{x:Bind local:MainWindow.PlayLabel(ViewModel.SelectedItem.IsRunning), Mode=OneWay}" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                                        </StackPanel>
+                                    </Button>
+
+                                    <CommandBar
+                                        DefaultLabelPosition="Right"
+                                        Background="Transparent"
+                                        IsOpen="False"
+                                        HorizontalAlignment="Left"
+                                        OverflowButtonVisibility="Collapsed"
+                                        IsDynamicOverflowEnabled="False"
+                                        Margin="-8,0,0,0">
+                                        <AppBarButton Label="Edit" Click="EditSelected_Click">
+                                            <AppBarButton.Icon>
+                                                <FontIcon Glyph="&#xE70F;" />
+                                            </AppBarButton.Icon>
+                                        </AppBarButton>
+                                        <AppBarButton Label="Show in folder" Click="RevealSelected_Click">
+                                            <AppBarButton.Icon>
+                                                <FontIcon Glyph="&#xE838;" />
+                                            </AppBarButton.Icon>
+                                        </AppBarButton>
+                                        <AppBarButton Label="Remove" Click="RemoveSelected_Click">
+                                            <AppBarButton.Icon>
+                                                <FontIcon Glyph="&#xE74D;" />
+                                            </AppBarButton.Icon>
+                                        </AppBarButton>
+                                    </CommandBar>
+
+                                    <Border
+                                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="8">
+                                        <StackPanel>
+                                            <Grid Padding="16,12" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                                                <FontIcon Glyph="&#xE823;" FontSize="16" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                                <TextBlock Grid.Column="1" Text="Play time" VerticalAlignment="Center" />
+                                                <TextBlock Grid.Column="2" Text="{x:Bind ViewModel.SelectedItem.PlayTimeText, Mode=OneWay}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" />
+                                            </Grid>
+                                            <Border Height="1" Background="{ThemeResource DividerStrokeColorDefaultBrush}" Margin="16,0" />
+                                            <Grid Padding="16,12" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                                                <FontIcon Glyph="&#xE787;" FontSize="16" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                                <TextBlock Grid.Column="1" Text="Last played" VerticalAlignment="Center" />
+                                                <TextBlock Grid.Column="2" Text="{x:Bind ViewModel.SelectedItem.LastPlayedText, Mode=OneWay}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" />
+                                            </Grid>
+                                            <Border Height="1" Background="{ThemeResource DividerStrokeColorDefaultBrush}" Margin="16,0" />
+                                            <Grid Padding="16,12" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                                                <FontIcon Glyph="&#xE8F1;" FontSize="16" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                                <TextBlock Grid.Column="1" Text="Added" VerticalAlignment="Center" />
+                                                <TextBlock Grid.Column="2" Text="{x:Bind ViewModel.SelectedItem.AddedText, Mode=OneWay}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" />
+                                            </Grid>
+                                            <Border Height="1" Background="{ThemeResource DividerStrokeColorDefaultBrush}" Margin="16,0" />
+                                            <StackPanel Padding="16,12" Spacing="6">
+                                                <StackPanel Orientation="Horizontal" Spacing="12">
+                                                    <FontIcon Glyph="&#xE756;" FontSize="16" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                                    <TextBlock Text="Executable" VerticalAlignment="Center" />
+                                                </StackPanel>
+                                                <TextBlock
+                                                    Text="{x:Bind ViewModel.SelectedItem.ExePath, Mode=OneWay}"
+                                                    Style="{StaticResource CaptionTextBlockStyle}"
+                                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                    TextWrapping="Wrap"
+                                                    IsTextSelectionEnabled="True" />
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Grid>
+                </SplitView.Pane>
+
+                <Grid>
+                    <ItemsView
+                        x:Name="LibraryView"
+                        ItemsSource="{x:Bind ViewModel.Games}"
+                        ItemTemplate="{StaticResource GameCardTemplate}"
+                        Layout="{StaticResource GridLayout}"
+                        SelectionMode="Single"
+                        IsItemInvokedEnabled="True"
+                        ItemInvoked="LibraryView_ItemInvoked"
+                        SelectionChanged="LibraryView_SelectionChanged"
+                        Padding="24,8,24,24" />
+
+                    <StackPanel
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Spacing="8"
+                        Visibility="{x:Bind ViewModel.IsLibraryEmpty, Mode=OneWay}">
+                        <Border Width="96" Height="96" CornerRadius="48" Background="{ThemeResource SubtleFillColorSecondaryBrush}" HorizontalAlignment="Center">
+                            <FontIcon Glyph="&#xE7FC;" FontSize="40" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        </Border>
+                        <TextBlock Text="Your library is empty" Style="{StaticResource SubtitleTextBlockStyle}" HorizontalAlignment="Center" Margin="0,12,0,0" />
+                        <TextBlock
+                            Text="Add a game to get started. Lutris only keeps a link to the executable and your banners, so nothing is moved."
+                            Style="{StaticResource BodyTextBlockStyle}"
+                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                            HorizontalAlignment="Center"
+                            TextAlignment="Center"
+                            TextWrapping="Wrap"
+                            MaxWidth="380" />
+                        <Button Style="{StaticResource AccentButtonStyle}" Click="AddGame_Click" HorizontalAlignment="Center" Margin="0,12,0,0">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <FontIcon Glyph="&#xE710;" FontSize="14" />
+                                <TextBlock Text="Add your first game" />
+                            </StackPanel>
+                        </Button>
+                        <HyperlinkButton Content="Import an existing library" Click="Import_Click" HorizontalAlignment="Center" />
+                    </StackPanel>
+
+                    <StackPanel
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Spacing="8"
+                        Visibility="{x:Bind ViewModel.HasNoMatches, Mode=OneWay}">
+                        <FontIcon Glyph="&#xE721;" FontSize="36" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <TextBlock Text="No games match your search" Style="{StaticResource SubtitleTextBlockStyle}" HorizontalAlignment="Center" Margin="0,8,0,0" />
+                        <TextBlock Text="Try a different title or clear the search." Foreground="{ThemeResource TextFillColorSecondaryBrush}" HorizontalAlignment="Center" />
+                        <HyperlinkButton Content="Clear search" Click="ClearSearch_Click" HorizontalAlignment="Center" />
+                    </StackPanel>
+                </Grid>
+            </SplitView>
+        </Border>
+
+        <!-- Transient notifications -->
+        <InfoBar
+            x:Name="Toast"
+            Grid.Row="3"
+            IsOpen="False"
+            IsClosable="True"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Bottom"
+            Margin="0,0,0,24"
+            MinWidth="380"
+            MaxWidth="640"
+            CornerRadius="8" />
+    </Grid>
+</Window>
