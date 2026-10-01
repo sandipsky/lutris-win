@@ -1,6 +1,7 @@
 using System;
 using System.ComponentModel;
 using System.IO;
+using System.Numerics;
 using System.Threading.Tasks;
 using Lutris.Controls;
 using Lutris.Data;
@@ -9,12 +10,11 @@ using Lutris.Models;
 using Lutris.Services;
 using Lutris.ViewModels;
 using Microsoft.UI.Dispatching;
-using Microsoft.UI.Input;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Hosting;
 using Microsoft.UI.Xaml.Input;
-using Windows.Foundation;
 using Windows.Graphics;
 
 namespace Lutris;
@@ -25,7 +25,7 @@ public sealed partial class MainWindow : Window
     private const int DefaultHeight = 840;
     private const int MinWidth = 900;
     private const int MinHeight = 600;
-    private const double InlinePaneMinWindowWidth = 1120;
+    private const double WideToolbarWindowWidth = 1120;
 
     private readonly DispatcherQueueTimer _toastTimer;
     private bool _syncingSelection;
@@ -37,6 +37,7 @@ public sealed partial class MainWindow : Window
         ViewModel = new LibraryViewModel(App.Library, App.Launcher);
         InitializeComponent();
         ConfigureWindow();
+        ConfigureDetailsPaneAnimations();
 
         _toastTimer = DispatcherQueue.CreateTimer();
         _toastTimer.Interval = TimeSpan.FromSeconds(4);
@@ -45,9 +46,9 @@ public sealed partial class MainWindow : Window
 
         ViewModel.PropertyChanged += ViewModel_PropertyChanged;
         App.Launcher.GameExited += Launcher_GameExited;
-        Root.Loaded += (_, _) => UpdateTitleBarRegions();
+        Root.Loaded += (_, _) => UpdateTitleBarInsets();
         Root.SizeChanged += Root_SizeChanged;
-        AppTitleBar.SizeChanged += (_, _) => UpdateTitleBarRegions();
+        AppTitleBar.SizeChanged += (_, _) => UpdateTitleBarInsets();
         LibraryView.Loaded += (_, _) => TrackLibraryScroll();
         LibraryView.SizeChanged += (_, _) => KeepLibraryAtTop();
 
@@ -73,7 +74,7 @@ public sealed partial class MainWindow : Window
 
         var appWindow = AppWindow;
         appWindow.Title = "Lutris";
-        appWindow.TitleBar.PreferredHeightOption = TitleBarHeightOption.Tall;
+        appWindow.TitleBar.PreferredHeightOption = TitleBarHeightOption.Standard;
         try
         {
             appWindow.SetIcon(Path.Combine(AppContext.BaseDirectory, "Assets", "Lutris.ico"));
@@ -100,39 +101,75 @@ public sealed partial class MainWindow : Window
     }
 
     /// <summary>
-    /// Keeps the caption-button insets and the search box passthrough region in sync with layout,
-    /// so the title bar drags the window everywhere except over the search box.
+    /// Keeps the caption-button insets in sync with layout so the app title never sits under the
+    /// window controls. The whole strip is a drag region.
     /// </summary>
-    private void UpdateTitleBarRegions()
+    private void UpdateTitleBarInsets()
     {
         if (AppTitleBar.XamlRoot is null) return;
         var scale = AppTitleBar.XamlRoot.RasterizationScale;
 
         LeftPaddingColumn.Width = new GridLength(AppWindow.TitleBar.LeftInset / scale);
         RightPaddingColumn.Width = new GridLength(AppWindow.TitleBar.RightInset / scale);
-
-        var transform = SearchBox.TransformToVisual(null);
-        var bounds = transform.TransformBounds(new Rect(0, 0, SearchBox.ActualWidth, SearchBox.ActualHeight));
-        var passthrough = new RectInt32(
-            (int)Math.Round(bounds.X * scale),
-            (int)Math.Round(bounds.Y * scale),
-            (int)Math.Round(bounds.Width * scale),
-            (int)Math.Round(bounds.Height * scale));
-
-        InputNonClientPointerSource.GetForWindowId(AppWindow.Id)
-            .SetRegionRects(NonClientRegionKind.Passthrough, new[] { passthrough });
     }
 
+    // The toolbar keeps the heading, search box, sort, view toggles and actions on one line, so at
+    // narrow widths the search box gives up some room rather than overlapping the heading.
     private void Root_SizeChanged(object sender, SizeChangedEventArgs e)
     {
-        DetailsSplitView.DisplayMode = e.NewSize.Width >= InlinePaneMinWindowWidth
-            ? SplitViewDisplayMode.Inline
-            : SplitViewDisplayMode.Overlay;
+        SearchBox.Width = e.NewSize.Width >= WideToolbarWindowWidth ? 300 : 220;
     }
 
-    // When the details pane opens the grid reflows to fewer columns and the ItemsView anchors on
-    // the selected card, which nudges the first row under the top edge. If the user was at the top,
-    // keep them there.
+    /// <summary>
+    /// Slides the details pane in from the right edge when it is shown and back out when it is
+    /// hidden. Implicit show/hide animations run on the compositor whenever Visibility changes, and
+    /// the hide animation finishes before the pane actually collapses.
+    /// </summary>
+    private void ConfigureDetailsPaneAnimations()
+    {
+        ElementCompositionPreview.SetIsTranslationEnabled(DetailsPane, true);
+        var compositor = ElementCompositionPreview.GetElementVisual(DetailsPane).Compositor;
+        var offscreen = new Vector3((float)DetailsPane.Width, 0f, 0f);
+
+        // Fluent motion curves: decelerate on entry, accelerate on exit.
+        var decelerate = compositor.CreateCubicBezierEasingFunction(new Vector2(0.1f, 0.9f), new Vector2(0.2f, 1f));
+        var accelerate = compositor.CreateCubicBezierEasingFunction(new Vector2(0.9f, 0.1f), new Vector2(1f, 0.2f));
+
+        var slideIn = compositor.CreateVector3KeyFrameAnimation();
+        slideIn.Target = "Translation";
+        slideIn.InsertKeyFrame(0f, offscreen);
+        slideIn.InsertKeyFrame(1f, Vector3.Zero, decelerate);
+        slideIn.Duration = TimeSpan.FromMilliseconds(300);
+
+        var fadeIn = compositor.CreateScalarKeyFrameAnimation();
+        fadeIn.Target = "Opacity";
+        fadeIn.InsertKeyFrame(0f, 0f);
+        fadeIn.InsertKeyFrame(1f, 1f, decelerate);
+        fadeIn.Duration = TimeSpan.FromMilliseconds(200);
+
+        var show = compositor.CreateAnimationGroup();
+        show.Add(slideIn);
+        show.Add(fadeIn);
+        ElementCompositionPreview.SetImplicitShowAnimation(DetailsPane, show);
+
+        var slideOut = compositor.CreateVector3KeyFrameAnimation();
+        slideOut.Target = "Translation";
+        slideOut.InsertKeyFrame(1f, offscreen, accelerate);
+        slideOut.Duration = TimeSpan.FromMilliseconds(200);
+
+        var fadeOut = compositor.CreateScalarKeyFrameAnimation();
+        fadeOut.Target = "Opacity";
+        fadeOut.InsertKeyFrame(1f, 0f, accelerate);
+        fadeOut.Duration = TimeSpan.FromMilliseconds(200);
+
+        var hide = compositor.CreateAnimationGroup();
+        hide.Add(slideOut);
+        hide.Add(fadeOut);
+        ElementCompositionPreview.SetImplicitHideAnimation(DetailsPane, hide);
+    }
+
+    // When the window is resized the grid reflows and the ItemsView anchors on the selected card,
+    // which can nudge the first row under the top edge. If the user was at the top, keep them there.
     private void TrackLibraryScroll()
     {
         if (LibraryView.ScrollView is not { } scrollView) return;
@@ -161,7 +198,7 @@ public sealed partial class MainWindow : Window
         if (e.PropertyName == nameof(LibraryViewModel.SelectedItem))
         {
             SyncSelectionToView();
-            DetailsSplitView.IsPaneOpen = ViewModel.HasSelection;
+            UpdateDetailsPane();
         }
     }
 
@@ -200,7 +237,7 @@ public sealed partial class MainWindow : Window
         {
             _syncingSelection = false;
         }
-        DetailsSplitView.IsPaneOpen = ViewModel.HasSelection;
+        UpdateDetailsPane();
     }
 
     private void LibraryView_ItemInvoked(ItemsView sender, ItemsViewItemInvokedEventArgs args)
@@ -208,10 +245,11 @@ public sealed partial class MainWindow : Window
         if (args.InvokedItem is GameItem item) ViewModel.SelectedItem = item;
     }
 
-    private void DetailsSplitView_PaneClosed(SplitView sender, object args)
+    // Showing or hiding the pane plays the animations from ConfigureDetailsPaneAnimations; changing
+    // the selection while it is already open only swaps the bound content.
+    private void UpdateDetailsPane()
     {
-        // Light dismiss in overlay mode, or a programmatic close: either way nothing is selected.
-        ViewModel.SelectedItem = null;
+        DetailsPane.Visibility = ViewModel.HasSelection ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private void CloseDetails_Click(object sender, RoutedEventArgs e) => ViewModel.SelectedItem = null;

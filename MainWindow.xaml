@@ -14,7 +14,7 @@
         <MicaBackdrop Kind="Base" />
     </Window.SystemBackdrop>
 
-    <Grid x:Name="Root" RowDefinitions="48,Auto,Auto,*" KeyboardAcceleratorPlacementMode="Hidden">
+    <Grid x:Name="Root" RowDefinitions="32,Auto,Auto,*" KeyboardAcceleratorPlacementMode="Hidden">
         <Grid.Resources>
             <UniformGridLayout
                 x:Key="GridLayout"
@@ -170,13 +170,10 @@
             <KeyboardAccelerator Key="F5" Invoked="RefreshAccelerator_Invoked" />
         </Grid.KeyboardAccelerators>
 
-        <!-- Title bar: app identity on the left, search in the middle, caption buttons on the right -->
-        <Grid x:Name="AppTitleBar" Grid.Row="0" Height="48">
+        <!-- Title bar: app identity on the left, caption buttons on the right; the whole strip drags the window -->
+        <Grid x:Name="AppTitleBar" Grid.Row="0" Height="32">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition x:Name="LeftPaddingColumn" Width="0" />
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition x:Name="RightPaddingColumn" Width="0" />
             </Grid.ColumnDefinitions>
@@ -185,20 +182,10 @@
                 <Image Source="ms-appx:///Assets/AppIcon.png" Width="16" Height="16" />
                 <TextBlock Text="Lutris" Style="{StaticResource CaptionTextBlockStyle}" VerticalAlignment="Center" />
             </StackPanel>
-
-            <AutoSuggestBox
-                x:Name="SearchBox"
-                Grid.Column="3"
-                Width="380"
-                VerticalAlignment="Center"
-                PlaceholderText="Search your library"
-                QueryIcon="Find"
-                TextChanged="SearchBox_TextChanged"
-                QuerySubmitted="SearchBox_QuerySubmitted" />
         </Grid>
 
         <!-- Toolbar -->
-        <Grid Grid.Row="1" Margin="24,4,24,12" ColumnDefinitions="*,Auto">
+        <Grid Grid.Row="1" Margin="24,8,24,12" ColumnDefinitions="*,Auto">
             <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
                 <TextBlock Text="Library" Style="{StaticResource TitleTextBlockStyle}" />
                 <TextBlock
@@ -210,6 +197,15 @@
             </StackPanel>
 
             <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                <AutoSuggestBox
+                    x:Name="SearchBox"
+                    Width="300"
+                    VerticalAlignment="Center"
+                    PlaceholderText="Search your library"
+                    QueryIcon="Find"
+                    TextChanged="SearchBox_TextChanged"
+                    QuerySubmitted="SearchBox_QuerySubmitted" />
+
                 <DropDownButton ToolTipService.ToolTip="Sort">
                     <StackPanel Orientation="Horizontal" Spacing="8">
                         <FontIcon Glyph="&#xE8CB;" FontSize="14" />
@@ -318,152 +314,153 @@
             BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
             BorderThickness="1,1,1,0"
             CornerRadius="8,8,0,0">
-            <SplitView
-                x:Name="DetailsSplitView"
-                PanePlacement="Right"
-                DisplayMode="Inline"
-                OpenPaneLength="400"
-                IsPaneOpen="False"
-                PaneBackground="{ThemeResource LayerFillColorAltBrush}"
-                PaneClosed="DetailsSplitView_PaneClosed"
-                CornerRadius="8,8,0,0">
-
-                <SplitView.Pane>
-                    <Grid BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1,0,0,0">
-                        <ScrollViewer VerticalScrollBarVisibility="Auto">
-                            <StackPanel>
-                                <!-- Hero banner with the title laid over a dark scrim -->
-                                <Grid Height="225">
-                                    <Border Background="{StaticResource HeroPlaceholderBrush}" />
-                                    <FontIcon
-                                        Glyph="&#xE7FC;"
-                                        FontSize="48"
-                                        Foreground="#40FFFFFF"
-                                        HorizontalAlignment="Center"
-                                        VerticalAlignment="Center"
-                                        Visibility="{x:Bind local:MainWindow.VisibleIfNot(ViewModel.SelectedItem.HasHero), Mode=OneWay}" />
-                                    <Image Source="{x:Bind ViewModel.SelectedItem.HeroImage, Mode=OneWay}" Stretch="UniformToFill" />
-                                    <Rectangle VerticalAlignment="Bottom" Height="150">
-                                        <Rectangle.Fill>
-                                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                                                <GradientStop Color="#00000000" Offset="0" />
-                                                <GradientStop Color="#CC000000" Offset="1" />
-                                            </LinearGradientBrush>
-                                        </Rectangle.Fill>
-                                    </Rectangle>
-                                    <StackPanel VerticalAlignment="Bottom" Padding="20,0,20,14" Spacing="2">
-                                        <TextBlock
-                                            Text="{x:Bind ViewModel.SelectedItem.Title, Mode=OneWay}"
-                                            Style="{StaticResource SubtitleTextBlockStyle}"
-                                            Foreground="White"
-                                            TextWrapping="Wrap"
-                                            MaxLines="2"
-                                            TextTrimming="CharacterEllipsis" />
-                                        <TextBlock
-                                            Text="{x:Bind ViewModel.SelectedItem.YearText, Mode=OneWay}"
-                                            Style="{StaticResource CaptionTextBlockStyle}"
-                                            Foreground="#CCFFFFFF"
-                                            Visibility="{x:Bind ViewModel.SelectedItem.HasYear, Mode=OneWay}" />
-                                    </StackPanel>
-                                    <Button
-                                        Click="CloseDetails_Click"
-                                        HorizontalAlignment="Right"
-                                        VerticalAlignment="Top"
-                                        Margin="12"
-                                        Width="32"
-                                        Height="32"
-                                        Padding="0"
-                                        CornerRadius="16"
-                                        Background="#66000000"
-                                        BorderThickness="0"
+            <Grid>
+                <!-- Details pane. It lays over the library and slides in from the right edge (see
+                     ConfigureDetailsPaneAnimations), so the grid underneath never reflows. -->
+                <Grid
+                    x:Name="DetailsPane"
+                    Width="400"
+                    HorizontalAlignment="Right"
+                    Canvas.ZIndex="1"
+                    Visibility="Collapsed"
+                    Background="{ThemeResource SolidBackgroundFillColorQuarternaryBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1,0,0,0"
+                    CornerRadius="0,8,0,0">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <StackPanel>
+                            <!-- Hero banner with the title laid over a dark scrim -->
+                            <Grid Height="225">
+                                <Border Background="{StaticResource HeroPlaceholderBrush}" />
+                                <FontIcon
+                                    Glyph="&#xE7FC;"
+                                    FontSize="48"
+                                    Foreground="#40FFFFFF"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"
+                                    Visibility="{x:Bind local:MainWindow.VisibleIfNot(ViewModel.SelectedItem.HasHero), Mode=OneWay}" />
+                                <Image Source="{x:Bind ViewModel.SelectedItem.HeroImage, Mode=OneWay}" Stretch="UniformToFill" />
+                                <Rectangle VerticalAlignment="Bottom" Height="150">
+                                    <Rectangle.Fill>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                            <GradientStop Color="#00000000" Offset="0" />
+                                            <GradientStop Color="#CC000000" Offset="1" />
+                                        </LinearGradientBrush>
+                                    </Rectangle.Fill>
+                                </Rectangle>
+                                <StackPanel VerticalAlignment="Bottom" Padding="20,0,20,14" Spacing="2">
+                                    <TextBlock
+                                        Text="{x:Bind ViewModel.SelectedItem.Title, Mode=OneWay}"
+                                        Style="{StaticResource SubtitleTextBlockStyle}"
                                         Foreground="White"
-                                        ToolTipService.ToolTip="Close">
-                                        <FontIcon Glyph="&#xE711;" FontSize="12" />
-                                    </Button>
-                                </Grid>
-
-                                <StackPanel Padding="20,16,20,20" Spacing="12">
-                                    <Button
-                                        Style="{StaticResource AccentButtonStyle}"
-                                        HorizontalAlignment="Stretch"
-                                        Height="40"
-                                        Click="PlaySelected_Click"
-                                        IsEnabled="{x:Bind local:MainWindow.Not(ViewModel.SelectedItem.IsRunning), Mode=OneWay}">
-                                        <StackPanel Orientation="Horizontal" Spacing="10">
-                                            <FontIcon Glyph="&#xE768;" FontSize="14" />
-                                            <TextBlock Text="{x:Bind local:MainWindow.PlayLabel(ViewModel.SelectedItem.IsRunning), Mode=OneWay}" Style="{StaticResource BodyStrongTextBlockStyle}" />
-                                        </StackPanel>
-                                    </Button>
-
-                                    <CommandBar
-                                        DefaultLabelPosition="Right"
-                                        Background="Transparent"
-                                        IsOpen="False"
-                                        HorizontalAlignment="Left"
-                                        OverflowButtonVisibility="Collapsed"
-                                        IsDynamicOverflowEnabled="False"
-                                        Margin="-8,0,0,0">
-                                        <AppBarButton Label="Edit" Click="EditSelected_Click">
-                                            <AppBarButton.Icon>
-                                                <FontIcon Glyph="&#xE70F;" />
-                                            </AppBarButton.Icon>
-                                        </AppBarButton>
-                                        <AppBarButton Label="Show in folder" Click="RevealSelected_Click">
-                                            <AppBarButton.Icon>
-                                                <FontIcon Glyph="&#xE838;" />
-                                            </AppBarButton.Icon>
-                                        </AppBarButton>
-                                        <AppBarButton Label="Remove" Click="RemoveSelected_Click">
-                                            <AppBarButton.Icon>
-                                                <FontIcon Glyph="&#xE74D;" />
-                                            </AppBarButton.Icon>
-                                        </AppBarButton>
-                                    </CommandBar>
-
-                                    <Border
-                                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                                        BorderThickness="1"
-                                        CornerRadius="8">
-                                        <StackPanel>
-                                            <Grid Padding="16,12" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
-                                                <FontIcon Glyph="&#xE823;" FontSize="16" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                                <TextBlock Grid.Column="1" Text="Play time" VerticalAlignment="Center" />
-                                                <TextBlock Grid.Column="2" Text="{x:Bind ViewModel.SelectedItem.PlayTimeText, Mode=OneWay}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" />
-                                            </Grid>
-                                            <Border Height="1" Background="{ThemeResource DividerStrokeColorDefaultBrush}" Margin="16,0" />
-                                            <Grid Padding="16,12" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
-                                                <FontIcon Glyph="&#xE787;" FontSize="16" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                                <TextBlock Grid.Column="1" Text="Last played" VerticalAlignment="Center" />
-                                                <TextBlock Grid.Column="2" Text="{x:Bind ViewModel.SelectedItem.LastPlayedText, Mode=OneWay}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" />
-                                            </Grid>
-                                            <Border Height="1" Background="{ThemeResource DividerStrokeColorDefaultBrush}" Margin="16,0" />
-                                            <Grid Padding="16,12" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
-                                                <FontIcon Glyph="&#xE8F1;" FontSize="16" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                                <TextBlock Grid.Column="1" Text="Added" VerticalAlignment="Center" />
-                                                <TextBlock Grid.Column="2" Text="{x:Bind ViewModel.SelectedItem.AddedText, Mode=OneWay}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" />
-                                            </Grid>
-                                            <Border Height="1" Background="{ThemeResource DividerStrokeColorDefaultBrush}" Margin="16,0" />
-                                            <StackPanel Padding="16,12" Spacing="6">
-                                                <StackPanel Orientation="Horizontal" Spacing="12">
-                                                    <FontIcon Glyph="&#xE756;" FontSize="16" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                                    <TextBlock Text="Executable" VerticalAlignment="Center" />
-                                                </StackPanel>
-                                                <TextBlock
-                                                    Text="{x:Bind ViewModel.SelectedItem.ExePath, Mode=OneWay}"
-                                                    Style="{StaticResource CaptionTextBlockStyle}"
-                                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                                    TextWrapping="Wrap"
-                                                    IsTextSelectionEnabled="True" />
-                                            </StackPanel>
-                                        </StackPanel>
-                                    </Border>
+                                        TextWrapping="Wrap"
+                                        MaxLines="2"
+                                        TextTrimming="CharacterEllipsis" />
+                                    <TextBlock
+                                        Text="{x:Bind ViewModel.SelectedItem.YearText, Mode=OneWay}"
+                                        Style="{StaticResource CaptionTextBlockStyle}"
+                                        Foreground="#CCFFFFFF"
+                                        Visibility="{x:Bind ViewModel.SelectedItem.HasYear, Mode=OneWay}" />
                                 </StackPanel>
-                            </StackPanel>
-                        </ScrollViewer>
-                    </Grid>
-                </SplitView.Pane>
+                                <Button
+                                    Click="CloseDetails_Click"
+                                    HorizontalAlignment="Right"
+                                    VerticalAlignment="Top"
+                                    Margin="12"
+                                    Width="32"
+                                    Height="32"
+                                    Padding="0"
+                                    CornerRadius="16"
+                                    Background="#66000000"
+                                    BorderThickness="0"
+                                    Foreground="White"
+                                    ToolTipService.ToolTip="Close">
+                                    <FontIcon Glyph="&#xE711;" FontSize="12" />
+                                </Button>
+                            </Grid>
 
+                            <StackPanel Padding="20,16,20,20" Spacing="12">
+                                <Button
+                                    Style="{StaticResource AccentButtonStyle}"
+                                    HorizontalAlignment="Stretch"
+                                    Height="40"
+                                    Click="PlaySelected_Click"
+                                    IsEnabled="{x:Bind local:MainWindow.Not(ViewModel.SelectedItem.IsRunning), Mode=OneWay}">
+                                    <StackPanel Orientation="Horizontal" Spacing="10">
+                                        <FontIcon Glyph="&#xE768;" FontSize="14" />
+                                        <TextBlock Text="{x:Bind local:MainWindow.PlayLabel(ViewModel.SelectedItem.IsRunning), Mode=OneWay}" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                                    </StackPanel>
+                                </Button>
+
+                                <CommandBar
+                                    DefaultLabelPosition="Right"
+                                    Background="Transparent"
+                                    IsOpen="False"
+                                    HorizontalAlignment="Left"
+                                    OverflowButtonVisibility="Collapsed"
+                                    IsDynamicOverflowEnabled="False"
+                                    Margin="-8,0,0,0">
+                                    <AppBarButton Label="Edit" Click="EditSelected_Click">
+                                        <AppBarButton.Icon>
+                                            <FontIcon Glyph="&#xE70F;" />
+                                        </AppBarButton.Icon>
+                                    </AppBarButton>
+                                    <AppBarButton Label="Show in folder" Click="RevealSelected_Click">
+                                        <AppBarButton.Icon>
+                                            <FontIcon Glyph="&#xE838;" />
+                                        </AppBarButton.Icon>
+                                    </AppBarButton>
+                                    <AppBarButton Label="Remove" Click="RemoveSelected_Click">
+                                        <AppBarButton.Icon>
+                                            <FontIcon Glyph="&#xE74D;" />
+                                        </AppBarButton.Icon>
+                                    </AppBarButton>
+                                </CommandBar>
+
+                                <Border
+                                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="8">
+                                    <StackPanel>
+                                        <Grid Padding="16,12" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                                            <FontIcon Glyph="&#xE823;" FontSize="16" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                            <TextBlock Grid.Column="1" Text="Play time" VerticalAlignment="Center" />
+                                            <TextBlock Grid.Column="2" Text="{x:Bind ViewModel.SelectedItem.PlayTimeText, Mode=OneWay}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" />
+                                        </Grid>
+                                        <Border Height="1" Background="{ThemeResource DividerStrokeColorDefaultBrush}" Margin="16,0" />
+                                        <Grid Padding="16,12" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                                            <FontIcon Glyph="&#xE787;" FontSize="16" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                            <TextBlock Grid.Column="1" Text="Last played" VerticalAlignment="Center" />
+                                            <TextBlock Grid.Column="2" Text="{x:Bind ViewModel.SelectedItem.LastPlayedText, Mode=OneWay}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" />
+                                        </Grid>
+                                        <Border Height="1" Background="{ThemeResource DividerStrokeColorDefaultBrush}" Margin="16,0" />
+                                        <Grid Padding="16,12" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                                            <FontIcon Glyph="&#xE8F1;" FontSize="16" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                            <TextBlock Grid.Column="1" Text="Added" VerticalAlignment="Center" />
+                                            <TextBlock Grid.Column="2" Text="{x:Bind ViewModel.SelectedItem.AddedText, Mode=OneWay}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" />
+                                        </Grid>
+                                        <Border Height="1" Background="{ThemeResource DividerStrokeColorDefaultBrush}" Margin="16,0" />
+                                        <StackPanel Padding="16,12" Spacing="6">
+                                            <StackPanel Orientation="Horizontal" Spacing="12">
+                                                <FontIcon Glyph="&#xE756;" FontSize="16" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                                <TextBlock Text="Executable" VerticalAlignment="Center" />
+                                            </StackPanel>
+                                            <TextBlock
+                                                Text="{x:Bind ViewModel.SelectedItem.ExePath, Mode=OneWay}"
+                                                Style="{StaticResource CaptionTextBlockStyle}"
+                                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                TextWrapping="Wrap"
+                                                IsTextSelectionEnabled="True" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Grid>
+
+                <!-- Library (grid or list) and its empty states -->
                 <Grid>
                     <ItemsView
                         x:Name="LibraryView"
@@ -513,7 +510,7 @@
                         <HyperlinkButton Content="Clear search" Click="ClearSearch_Click" HorizontalAlignment="Center" />
                     </StackPanel>
                 </Grid>
-            </SplitView>
+            </Grid>
         </Border>
 
         <!-- Transient notifications -->
