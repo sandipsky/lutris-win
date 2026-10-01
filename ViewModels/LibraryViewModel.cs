@@ -1,7 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
+using System.Security;
+using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Lutris.Models;
 using Lutris.Services;
@@ -18,12 +22,14 @@ public sealed partial class LibraryViewModel : ObservableObject
     private readonly GameLauncher _launcher;
     private readonly Dictionary<long, GameItem> _items = new();
     private List<Game> _all = new();
+    private IReadOnlyList<GpuAdapter> _gpus = Array.Empty<GpuAdapter>();
 
     public LibraryViewModel(LibraryService library, GameLauncher launcher)
     {
         _library = library;
         _launcher = launcher;
         SearchText = string.Empty;
+        GpuOptions = Array.Empty<string>();
         _launcher.GameStarted += id => SetRunning(id, true);
         _launcher.GameExited += (id, _) => SetRunning(id, false);
     }
@@ -51,6 +57,11 @@ public sealed partial class LibraryViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(HasNoMatches))]
     public partial int VisibleCount { get; set; }
 
+    /// <summary>"Default" followed by each graphics card, filled in by <see cref="LoadGpusAsync"/>.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasGpuChoice))]
+    public partial IReadOnlyList<string> GpuOptions { get; set; }
+
     public ObservableCollection<GameItem> Games { get; } = new();
 
     public bool HasSelection => SelectedItem is not null;
@@ -72,6 +83,64 @@ public sealed partial class LibraryViewModel : ObservableObject
         LibrarySort.RecentlyAdded => "Recently added",
         _ => "Title",
     };
+
+    /// <summary>True when the PC has more than one graphics card, so the choice is worth showing.</summary>
+    public bool HasGpuChoice => _gpus.Count > 1;
+
+    /// <summary>Finds the graphics cards once at startup; the selector stays hidden until this completes.</summary>
+    public async Task LoadGpusAsync()
+    {
+        try
+        {
+            _gpus = await GpuPreferences.ListAdaptersAsync();
+        }
+        catch (Exception ex) when (ex is COMException or ArgumentException or UnauthorizedAccessException or InvalidOperationException)
+        {
+            _gpus = Array.Empty<GpuAdapter>();
+        }
+        GpuOptions = new[] { "Default" }.Concat(_gpus.Select(g => g.Name)).ToList();
+    }
+
+    /// <summary>
+    /// Index into <see cref="GpuOptions"/> of the card Windows has the game pinned to; 0 (Default)
+    /// when Windows decides or the card is no longer present.
+    /// </summary>
+    public int GpuOptionIndex(GameItem item)
+    {
+        string? id;
+        try
+        {
+            id = GpuPreferences.GetSpecificGpu(item.ExePath);
+        }
+        catch (Exception ex) when (ex is SecurityException or IOException or UnauthorizedAccessException)
+        {
+            return 0;
+        }
+        if (id is null) return 0;
+        for (var i = 0; i < _gpus.Count; i++)
+        {
+            if (string.Equals(_gpus[i].Id, id, StringComparison.OrdinalIgnoreCase)) return i + 1;
+        }
+        return 0;
+    }
+
+    /// <summary>
+    /// Pins the game to the card at <paramref name="optionIndex"/> in <see cref="GpuOptions"/>
+    /// (0 = Default). Returns an error message when Windows refused the change.
+    /// </summary>
+    public string? SetGpuOption(GameItem item, int optionIndex)
+    {
+        var adapter = optionIndex > 0 && optionIndex <= _gpus.Count ? _gpus[optionIndex - 1] : null;
+        try
+        {
+            GpuPreferences.SetSpecificGpu(item.ExePath, adapter?.Id);
+            return null;
+        }
+        catch (Exception ex) when (ex is SecurityException or IOException or UnauthorizedAccessException)
+        {
+            return ex.Message;
+        }
+    }
 
     /// <summary>Re-reads the library from disk and refreshes the visible list in place.</summary>
     public void Reload()

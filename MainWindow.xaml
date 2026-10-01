@@ -453,6 +453,21 @@
                                                 TextWrapping="Wrap"
                                                 IsTextSelectionEnabled="True" />
                                         </StackPanel>
+                                        <!-- Only on PCs with more than one graphics card (LibraryViewModel.HasGpuChoice) -->
+                                        <StackPanel Visibility="{x:Bind ViewModel.HasGpuChoice, Mode=OneWay}">
+                                            <Border Height="1" Background="{ThemeResource DividerStrokeColorDefaultBrush}" Margin="16,0" />
+                                            <StackPanel Padding="16,12" Spacing="8">
+                                                <StackPanel Orientation="Horizontal" Spacing="12">
+                                                    <FontIcon Glyph="&#xE7F4;" FontSize="16" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                                    <TextBlock Text="Graphics card" VerticalAlignment="Center" />
+                                                </StackPanel>
+                                                <ComboBox
+                                                    x:Name="GpuCombo"
+                                                    HorizontalAlignment="Stretch"
+                                                    SelectionChanged="GpuCombo_SelectionChanged"
+                                                    ToolTipService.ToolTip="The graphics card Windows runs this game on. Takes effect the next time it starts." />
+                                            </StackPanel>
+                                        </StackPanel>
                                     </StackPanel>
                                 </Border>
                             </StackPanel>
@@ -461,7 +476,7 @@
                 </Grid>
 
                 <!-- Library (grid or list) and its empty states -->
-                <Grid>
+                <Grid Background="Transparent" Tapped="Library_Tapped">
                     <ItemsView
                         x:Name="LibraryView"
                         ItemsSource="{x:Bind ViewModel.Games}"

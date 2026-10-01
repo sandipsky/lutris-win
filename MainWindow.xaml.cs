@@ -13,8 +13,10 @@ using Microsoft.UI.Dispatching;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Hosting;
 using Microsoft.UI.Xaml.Input;
+using Microsoft.UI.Xaml.Media;
 using Windows.Graphics;
 
 namespace Lutris;
@@ -29,6 +31,7 @@ public sealed partial class MainWindow : Window
 
     private readonly DispatcherQueueTimer _toastTimer;
     private bool _syncingSelection;
+    private bool _syncingGpu;
     private double _libraryOffset;
     private bool _libraryReflowing;
 
@@ -53,6 +56,7 @@ public sealed partial class MainWindow : Window
         LibraryView.SizeChanged += (_, _) => KeepLibraryAtTop();
 
         ViewModel.Reload();
+        _ = ViewModel.LoadGpusAsync();
         var canImport = App.Library.CanImportFromElectron;
         ImportElectronItem.Visibility = canImport ? Visibility.Visible : Visibility.Collapsed;
         MigrationBar.IsOpen = canImport && ViewModel.IsLibraryEmpty;
@@ -198,7 +202,14 @@ public sealed partial class MainWindow : Window
         if (e.PropertyName == nameof(LibraryViewModel.SelectedItem))
         {
             SyncSelectionToView();
+            SyncGpuCombo();
             UpdateDetailsPane();
+        }
+        else if (e.PropertyName == nameof(LibraryViewModel.GpuOptions))
+        {
+            // Set here rather than bound so the items are in place before the selection is restored.
+            GpuCombo.ItemsSource = ViewModel.GpuOptions;
+            SyncGpuCombo();
         }
     }
 
@@ -253,6 +264,54 @@ public sealed partial class MainWindow : Window
     }
 
     private void CloseDetails_Click(object sender, RoutedEventArgs e) => ViewModel.SelectedItem = null;
+
+    // The combo mirrors the Windows setting for the selected game's executable, so it is re-read
+    // on every selection change instead of being cached on the item.
+    private void SyncGpuCombo()
+    {
+        _syncingGpu = true;
+        try
+        {
+            GpuCombo.SelectedIndex = ViewModel.SelectedItem is { } item && ViewModel.HasGpuChoice
+                ? ViewModel.GpuOptionIndex(item)
+                : -1;
+        }
+        finally
+        {
+            _syncingGpu = false;
+        }
+    }
+
+    private void GpuCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_syncingGpu || GpuCombo.SelectedIndex < 0 || ViewModel.SelectedItem is not { } item) return;
+
+        var error = ViewModel.SetGpuOption(item, GpuCombo.SelectedIndex);
+        if (error is not null)
+        {
+            ShowToast($"The graphics card could not be set: {error}", InfoBarSeverity.Error);
+            SyncGpuCombo();
+        }
+        else if (item.IsRunning)
+        {
+            ShowToast($"{item.Title} will switch graphics card the next time it starts");
+        }
+    }
+
+    // Tapping the library where there is no game (the padding, the gaps between cards, the empty
+    // states) dismisses the pane. A tap on a card stops at its ItemContainer, so ItemsView keeps
+    // handling it: the card becomes the selection and the pane swaps to it instead of closing.
+    private void Library_Tapped(object sender, TappedRoutedEventArgs e)
+    {
+        if (!ViewModel.HasSelection) return;
+        for (var node = e.OriginalSource as DependencyObject;
+             node is not null && !ReferenceEquals(node, sender);
+             node = VisualTreeHelper.GetParent(node))
+        {
+            if (node is ItemContainer or ScrollBar) return;
+        }
+        ViewModel.SelectedItem = null;
+    }
 
     // ----- Search, sort and view mode -----
 

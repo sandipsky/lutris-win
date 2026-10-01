@@ -72,7 +72,11 @@ public sealed class LibraryService
             landscape = Banners.Copy(draft.LandscapeSource, BannerKind.Landscape);
         }
 
-        return _db.Update(id, draft.Title.Trim(), draft.ReleaseYear, draft.ExePath.Trim(), portrait, landscape);
+        var exePath = draft.ExePath.Trim();
+        var updated = _db.Update(id, draft.Title.Trim(), draft.ReleaseYear, exePath, portrait, landscape);
+        // Windows keys the graphics card choice by executable path, so it follows a moved exe.
+        if (updated is not null) GpuPreferences.Move(existing.ExePath, exePath);
+        return updated;
     }
 
     public bool DeleteGame(long id)
