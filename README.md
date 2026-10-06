@@ -96,8 +96,8 @@ Developer overrides (environment variables):
 | `Services/` | Library facade, game launcher with play-time tracking, file pickers, formatting |
 | `Models/` | `Game` record and the bindable `GameItem` wrapper |
 | `ViewModels/` | `LibraryViewModel`: search, sort, view mode, selection |
-| `Controls/` | `GameEditorDialog`, the add/edit form |
-| `Interop/` | The little Win32 needed for DPI and minimum window size |
+| `Controls/` | `GameEditorDialog`, the add/edit form, and `WheelScrolling` for the library's mouse wheel |
+| `Interop/` | The little Win32 needed for DPI, minimum window size and the wheel scroll setting |
 | `Assets/` | App icon and packaging logos generated from the Lutris logo |
 
 ## Keyboard shortcuts

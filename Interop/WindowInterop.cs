@@ -9,14 +9,15 @@ using WinRT.Interop;
 namespace Lutris.Interop;
 
 /// <summary>
-/// The two pieces of Win32 the app still needs: the window's DPI before it is shown,
-/// and a minimum size (WinUI has no property for it).
+/// The little Win32 the app still needs: the window's DPI before it is shown, a minimum size
+/// (WinUI has no property for it) and the mouse wheel setting.
 /// </summary>
 internal static class WindowInterop
 {
     private const int GWLP_WNDPROC = -4;
     private const uint WM_GETMINMAXINFO = 0x0024;
     private const int MDT_EFFECTIVE_DPI = 0;
+    private const uint SPI_GETWHEELSCROLLLINES = 0x0068;
 
     // Delegates must stay referenced for as long as the window exists.
     private static readonly List<WndProc> KeepAlive = new();
@@ -62,6 +63,13 @@ internal static class WindowInterop
             : SetWindowLong32(hwnd, GWLP_WNDPROC, pointer);
     }
 
+    /// <summary>
+    /// The "lines to scroll" mouse setting: lines per wheel notch, or <see cref="uint.MaxValue"/> when
+    /// Windows is set to scroll one screen at a time.
+    /// </summary>
+    public static uint GetWheelScrollLines() =>
+        SystemParametersInfo(SPI_GETWHEELSCROLLLINES, 0, out var lines, 0) ? lines : 3;
+
     [StructLayout(LayoutKind.Sequential)]
     private struct POINT
     {
@@ -81,6 +89,10 @@ internal static class WindowInterop
 
     [DllImport("user32.dll")]
     private static extern uint GetDpiForWindow(IntPtr hWnd);
+
+    [DllImport("user32.dll", EntryPoint = "SystemParametersInfoW")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool SystemParametersInfo(uint uiAction, uint uiParam, out uint pvParam, uint fWinIni);
 
     [DllImport("Shcore.dll")]
     private static extern int GetDpiForMonitor(IntPtr hMonitor, int dpiType, out uint dpiX, out uint dpiY);

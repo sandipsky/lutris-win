@@ -51,7 +51,11 @@ public sealed partial class MainWindow : Window
         Root.Loaded += (_, _) => UpdateTitleBarInsets();
         Root.SizeChanged += Root_SizeChanged;
         AppTitleBar.SizeChanged += (_, _) => UpdateTitleBarInsets();
-        LibraryView.Loaded += (_, _) => TrackLibraryScroll();
+        LibraryView.Loaded += (_, _) =>
+        {
+            TrackLibraryScroll();
+            if (LibraryView.ScrollView is { } scrollView) WheelScrolling.Attach(scrollView);
+        };
         LibraryView.SizeChanged += (_, _) => KeepLibraryAtTop();
 
         ViewModel.Reload();
