@@ -73,10 +73,29 @@ public sealed class LibraryDatabase : IDisposable
 
     public void Dispose() => Close();
 
-    /// <summary>Folds the write-ahead log into the main file so it can be copied on its own.</summary>
-    public void Checkpoint()
+    /// <summary>
+    /// Writes a consistent copy of the database at <paramref name="sourcePath"/>, including anything
+    /// still in its write-ahead log, to <paramref name="destinationPath"/>. The open library holds the
+    /// file locked for writing, so it cannot be copied directly; this reads it through connections of
+    /// its own instead, which also makes it safe to call from any thread while the library is in use.
+    /// </summary>
+    public static void BackUp(string sourcePath, string destinationPath)
     {
-        Execute(Connection, "PRAGMA wal_checkpoint(TRUNCATE);");
+        using var source = new SqliteConnection(new SqliteConnectionStringBuilder
+        {
+            DataSource = sourcePath,
+            Mode = SqliteOpenMode.ReadOnly,
+            Pooling = false,
+        }.ToString());
+        using var destination = new SqliteConnection(new SqliteConnectionStringBuilder
+        {
+            DataSource = destinationPath,
+            Mode = SqliteOpenMode.ReadWriteCreate,
+            Pooling = false,
+        }.ToString());
+        source.Open();
+        destination.Open();
+        source.BackupDatabase(destination);
     }
 
     public List<Game> ListGames()

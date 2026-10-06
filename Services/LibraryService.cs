@@ -98,8 +98,23 @@ public sealed class LibraryService
 
     public async Task ExportAsync(string zipPath)
     {
-        _db.Checkpoint();
-        await Task.Run(() => LibraryArchive.Export(AppPaths.DbPath, AppPaths.BannersDir, zipPath));
+        await Task.Run(() =>
+        {
+            // The archive is built from a snapshot because the live library.db is locked while open.
+            var snapshot = Path.Combine(Path.GetTempPath(), $"lutris-export-{Guid.NewGuid():N}.db");
+            try
+            {
+                LibraryDatabase.BackUp(AppPaths.DbPath, snapshot);
+                LibraryArchive.Export(snapshot, AppPaths.BannersDir, zipPath);
+            }
+            finally
+            {
+                foreach (var file in DatabaseFiles(snapshot))
+                {
+                    try { File.Delete(file); } catch (IOException) { }
+                }
+            }
+        });
     }
 
     /// <summary>
