@@ -14,7 +14,7 @@
         <MicaBackdrop Kind="Base" />
     </Window.SystemBackdrop>
 
-    <Grid x:Name="Root" RowDefinitions="32,Auto,Auto,*" KeyboardAcceleratorPlacementMode="Hidden">
+    <Grid x:Name="Root" RowDefinitions="32,Auto,*" KeyboardAcceleratorPlacementMode="Hidden">
         <Grid.Resources>
             <UniformGridLayout
                 x:Key="GridLayout"
@@ -277,11 +277,6 @@
                                 </MenuFlyoutItem.Icon>
                             </MenuFlyoutItem>
                             <MenuFlyoutSeparator />
-                            <MenuFlyoutItem x:Name="ImportElectronItem" Text="Import from the previous Lutris app…" Click="ImportElectron_Click" Visibility="Collapsed">
-                                <MenuFlyoutItem.Icon>
-                                    <FontIcon Glyph="&#xE896;" />
-                                </MenuFlyoutItem.Icon>
-                            </MenuFlyoutItem>
                             <MenuFlyoutItem Text="Open data folder" Click="OpenDataFolder_Click">
                                 <MenuFlyoutItem.Icon>
                                     <FontIcon Glyph="&#xE8B7;" />
@@ -293,23 +288,9 @@
             </StackPanel>
         </Grid>
 
-        <!-- One-time offer to bring over the Electron app's library -->
-        <InfoBar
-            x:Name="MigrationBar"
-            Grid.Row="2"
-            Margin="24,0,24,12"
-            IsOpen="False"
-            Severity="Informational"
-            Title="Library found"
-            Message="A library from the earlier Lutris desktop app is on this PC. Import it to bring over your games, banners and play time.">
-            <InfoBar.ActionButton>
-                <Button Content="Import library" Click="ImportElectron_Click" />
-            </InfoBar.ActionButton>
-        </InfoBar>
-
         <!-- Content layer -->
         <Border
-            Grid.Row="3"
+            Grid.Row="2"
             Background="{ThemeResource LayerFillColorDefaultBrush}"
             BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
             BorderThickness="1,1,1,0"
@@ -516,7 +497,7 @@
         <!-- Transient notifications -->
         <InfoBar
             x:Name="Toast"
-            Grid.Row="3"
+            Grid.Row="2"
             IsOpen="False"
             IsClosable="True"
             HorizontalAlignment="Center"

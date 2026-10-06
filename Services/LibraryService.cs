@@ -114,25 +114,6 @@ public sealed class LibraryService
         await ReplaceLibraryAsync(() => LibraryArchive.ExtractInto(zipPath, AppPaths.DbPath, AppPaths.BannersDir));
     }
 
-    /// <summary>True when the earlier Electron build of this app left a library on this PC.</summary>
-    public bool CanImportFromElectron => File.Exists(AppPaths.ElectronDbPath);
-
-    public Task ImportFromElectronAsync()
-    {
-        return ReplaceLibraryAsync(() =>
-        {
-            LibraryDatabase.CopyDatabase(AppPaths.ElectronDbPath, AppPaths.DbPath);
-            if (Directory.Exists(AppPaths.ElectronBannersDir))
-            {
-                Directory.CreateDirectory(AppPaths.BannersDir);
-                foreach (var file in Directory.EnumerateFiles(AppPaths.ElectronBannersDir))
-                {
-                    File.Copy(file, Path.Combine(AppPaths.BannersDir, Path.GetFileName(file)), overwrite: true);
-                }
-            }
-        });
-    }
-
     private async Task ReplaceLibraryAsync(Action writeNewLibrary)
     {
         _db.Close();

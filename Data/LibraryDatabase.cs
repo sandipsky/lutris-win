@@ -161,29 +161,6 @@ public sealed class LibraryDatabase : IDisposable
         cmd.ExecuteNonQuery();
     }
 
-    /// <summary>
-    /// Copies another SQLite library into this one using the online backup API, which reads
-    /// through the source's write-ahead log without modifying the source files.
-    /// </summary>
-    public static void CopyDatabase(string sourcePath, string destinationPath)
-    {
-        using var source = new SqliteConnection(new SqliteConnectionStringBuilder
-        {
-            DataSource = sourcePath,
-            Mode = SqliteOpenMode.ReadOnly,
-            Pooling = false,
-        }.ToString());
-        using var destination = new SqliteConnection(new SqliteConnectionStringBuilder
-        {
-            DataSource = destinationPath,
-            Mode = SqliteOpenMode.ReadWriteCreate,
-            Pooling = false,
-        }.ToString());
-        source.Open();
-        destination.Open();
-        source.BackupDatabase(destination);
-    }
-
     private SqliteConnection Connection =>
         _connection ?? throw new InvalidOperationException("The library database is not open.");
 

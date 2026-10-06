@@ -20,16 +20,6 @@ public static class AppPaths
 
     public static string LogPath => Path.Combine(DataDir, "lutris.log");
 
-    /// <summary>
-    /// Data folder of the earlier Electron build of this app, used for a one-time import.
-    /// </summary>
-    public static string ElectronDataDir { get; } =
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "lutris-win");
-
-    public static string ElectronDbPath => Path.Combine(ElectronDataDir, "library.db");
-
-    public static string ElectronBannersDir => Path.Combine(ElectronDataDir, "banners");
-
     public static void EnsureCreated()
     {
         Directory.CreateDirectory(DataDir);

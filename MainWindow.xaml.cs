@@ -55,9 +55,6 @@ public sealed partial class MainWindow : Window
         LibraryView.SizeChanged += (_, _) => KeepLibraryAtTop();
 
         ViewModel.Reload();
-        var canImport = App.Library.CanImportFromElectron;
-        ImportElectronItem.Visibility = canImport ? Visibility.Visible : Visibility.Collapsed;
-        MigrationBar.IsOpen = canImport && ViewModel.IsLibraryEmpty;
     }
 
     public LibraryViewModel ViewModel { get; }
@@ -473,21 +470,6 @@ public sealed partial class MainWindow : Window
         if (!confirmed) return;
 
         await ReplaceLibraryAsync(() => App.Library.ImportAsync(path), "Library imported");
-    }
-
-    private async void ImportElectron_Click(object sender, RoutedEventArgs e)
-    {
-        if (!ViewModel.IsLibraryEmpty)
-        {
-            var confirmed = await ConfirmAsync(
-                "Replace your library?",
-                "Importing replaces every game and banner currently in your library with the ones from the previous Lutris app.",
-                "Replace library");
-            if (!confirmed) return;
-        }
-
-        await ReplaceLibraryAsync(App.Library.ImportFromElectronAsync, "Your library was brought over from the previous Lutris app");
-        MigrationBar.IsOpen = false;
     }
 
     private async Task ReplaceLibraryAsync(Func<Task> import, string successMessage)

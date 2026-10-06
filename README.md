@@ -81,8 +81,7 @@ The resulting publish folder is about 200 MB uncompressed (roughly 70 MB inside 
 - Crash log: `%LOCALAPPDATA%\Lutris\lutris.log`
 
 Use **More options › Export library** to produce a portable `.zip` (the database plus the banners folder),
-and **Import library** to replace the current library from one. On first run, if a library from the
-Electron version is found under `%APPDATA%\lutris-win`, the app offers to bring it over.
+and **Import library** to replace the current library from one.
 
 Developer overrides (environment variables):
 
